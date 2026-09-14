@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Team Check-in System · Message Galaxy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#020203;
+      --panel:rgba(10,10,11,0.74);
+      --border:rgba(255,255,255,0.10);
+      --text:#f5f5f7;
+      --muted:#9aa0a6;
+      --blue:#2d8cf0;
+      --blue-glow:rgba(45,140,240,0.55);
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{
+      width:100%;height:100%;
+      background:var(--bg);
+      color:var(--text);
+      font-family:"Inter","PingFang SC","Microsoft YaHei",sans-serif;
+      overflow:hidden;
+    }
+    canvas{
+      position:fixed;inset:0;
+      width:100%;height:100%;
+      z-index:0;
+    }
+    .nav{
+      position:fixed;top:0;left:0;right:0;
+      display:flex;align-items:center;justify-content:space-between;
+      padding:24px 40px;
+      z-index:20;
+      pointer-events:none;
+    }
+    .nav > *{pointer-events:auto}
+    .logo{
+      font-size:18px;font-weight:600;letter-spacing:-0.5px;color:#fff;
+    }
+    .links{display:flex;gap:28px}
+    .links a{
+      font-size:14px;font-weight:400;color:#9aa0a6;text-decoration:none;
+      transition:color .25s ease;
+    }
+    .links a:hover{color:#fff}
+    .nav-right{
+      display:flex;align-items:center;gap:18px;
+    }
+    .divider{
+      width:1px;height:18px;background:var(--border);opacity:.55;
+    }
+    .corner{
+      display:flex;gap:10px;align-items:center;
+    }
+    .toggle-btn{
+      background:transparent;border:1px solid var(--border);color:var(--muted);
+      padding:6px 12px;border-radius:999px;font-size:12px;cursor:pointer;
+      transition:all .2s ease;
+    }
+    .toggle-btn:hover{color:#fff;border-color:rgba(255,255,255,0.22)}
+    .count-badge{
+      background:rgba(255,255,255,0.08);border:1px solid var(--border);
+      color:var(--muted);padding:6px 12px;border-radius:999px;font-size:12px;
+    }
+    .panel{
+      position:fixed;left:50%;bottom:34px;
+      transform:translateX(-50%);
+      width:min(560px,92vw);
+      background:var(--panel);
+      backdrop-filter:blur(18px) saturate(140%);
+      -webkit-backdrop-filter:blur(18px) saturate(140%);
+      border:1px solid var(--border);
+      border-radius:20px;
+      padding:22px 26px 24px;
+      z-index:20;
+      box-shadow:0 24px 70px rgba(0,0,0,0.45);
+      transition:opacity .35s ease, transform .35s ease;
+    }
+    .panel.hidden{
+      opacity:0;pointer-events:none;
+      transform:translate(-50%, 24px);
+    }
+    .panel h2{
+      font-size:16px;font-weight:500;margin-bottom:4px;
+    }
+    .panel p.hint{
+      font-size:12px;color:var(--muted);margin-bottom:16px;
+    }
+    .row{display:flex;gap:12px;margin-bottom:12px}
+    input,textarea{
+      width:100%;
+      background:rgba(255,255,255,0.04);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:11px 14px;
+      color:var(--text);
+      font-size:14px;
+      outline:none;
+      transition:border-color .2s, background .2s;
+      resize:none;
+    }
+    input::placeholder,textarea::placeholder{color:rgba(255,255,255,0.28)}
+    input:focus,textarea:focus{
+      background:rgba(255,255,255,0.06);
+      border-color:rgba(255,255,255,0.24);
+    }
+    input[name="name"]{flex:0 0 130px}
+    textarea{height:64px}
+    .actions{display:flex;align-items:center;justify-content:space-between}
+    .actions small{color:var(--muted);font-size:12px}
+    button.submit{
+      background:linear-gradient(135deg, #2d8cf0, #1a6fcb);
+      border:none;border-radius:12px;
+      color:#fff;font-size:14px;font-weight:500;
+      padding:10px 22px;
+      cursor:pointer;
+      box-shadow:0 0 18px rgba(45,140,240,0.22);
+      transition:transform .15s, box-shadow .2s;
+    }
+    button.submit:hover{
+      transform:translateY(-1px);
+      box-shadow:0 0 26px rgba(45,140,240,0.36);
+    }
+    button.submit:active{transform:translateY(0)}
+    .tooltip{
+      position:fixed;pointer-events:none;
+      max-width:280px;
+      background:rgba(8,8,10,0.86);
+      backdrop-filter:blur(12px);
+      border:1px solid rgba(255,255,255,0.12);
+      border-radius:14px;
+      padding:12px 14px;
+      color:#fff;font-size:13px;line-height:1.5;
+      opacity:0;transform:translateY(6px);
+      transition:opacity .2s, transform .2s;
+      z-index:30;
+    }
+    .tooltip.show{opacity:1;transform:translateY(0)}
+    .tooltip .meta{
+      font-size:11px;color:var(--muted);margin-top:6px;
+      display:flex;justify-content:space-between;
+    }
+    .tooltip .name{color:#7ec1ff;font-weight:500}
+    .intro{
+      position:fixed;top:50%;left:50%;
+      transform:translate(-50%,-50%);
+      text-align:center;pointer-events:none;z-index:5;
+      opacity:0.85;
+    }
+    .intro h1{
+      font-size:42px;font-weight:300;letter-spacing:-1px;
+      background:linear-gradient(180deg,#fff 0%,#9aa0a6 100%);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      margin-bottom:10px;
+    }
+    .intro p{font-size:14px;color:var(--muted);font-weight:300}
+
+    /* View-all messages button + overlay */
+    .list-btn{
+      background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--text);
+      padding:6px 14px;border-radius:999px;font-size:12px;cursor:pointer;
+      transition:all .2s ease;white-space:nowrap;
+    }
+    .list-btn:hover{background:rgba(45,140,240,0.18);border-color:rgba(45,140,240,0.4);color:#cfe6ff}
+    .overlay{
+      position:fixed;inset:0;z-index:40;
+      display:flex;align-items:center;justify-content:center;
+      background:rgba(2,2,3,0.55);backdrop-filter:blur(6px);
+      opacity:0;pointer-events:none;transition:opacity .3s ease;
+    }
+    .overlay.show{opacity:1;pointer-events:auto}
+    .msg-board{
+      width:min(560px,92vw);max-height:78vh;
+      background:var(--panel);
+      border:1px solid var(--border);border-radius:20px;
+      padding:22px 22px 10px;
+      display:flex;flex-direction:column;
+      box-shadow:0 24px 70px rgba(0,0,0,0.5);
+      transform:translateY(12px);transition:transform .3s ease;
+    }
+    .overlay.show .msg-board{transform:translateY(0)}
+    .msg-board .head{
+      display:flex;align-items:center;justify-content:space-between;
+      margin-bottom:14px;
+    }
+    .msg-board .head h3{font-size:16px;font-weight:500}
+    .msg-board .head .close{
+      background:transparent;border:none;color:var(--muted);font-size:20px;
+      cursor:pointer;line-height:1;padding:4px 8px;border-radius:8px;
+    }
+    .msg-board .head .close:hover{color:#fff;background:rgba(255,255,255,0.08)}
+    .msg-scroll{
+      overflow-y:auto;padding-right:6px;margin:0 -6px 0 0;
+    }
+    .msg-scroll::-webkit-scrollbar{width:6px}
+    .msg-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:3px}
+    .msg-card{
+      border:1px solid var(--border);border-radius:14px;
+      padding:13px 15px;margin-bottom:12px;
+      background:rgba(255,255,255,0.03);
+    }
+    .msg-card .top{
+      display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;
+    }
+    .msg-card .who{color:#7ec1ff;font-weight:500;font-size:14px}
+    .msg-card .when{color:var(--muted);font-size:11px}
+    .msg-card .body{font-size:14px;line-height:1.6;color:#e8e8ea;word-break:break-word}
+    .msg-empty{color:var(--muted);font-size:14px;text-align:center;padding:30px 0}
+    @media (max-width:600px){
+      .nav{padding:14px 20px}
+      .nav-right{gap:10px;flex-wrap:wrap;justify-content:flex-end}
+      .corner{gap:6px}
+      .panel{padding:18px;bottom:90px}
+      .row{flex-direction:column}
+      input[name="name"]{flex:auto}
+      .intro h1{font-size:30px}
+    }
+  </style>
+</head>
+<body>
+  <canvas id="galaxy"></canvas>
+
+  <nav class="nav">
+    <div class="logo">CheckIn</div>
+    <div class="nav-right">
+      <div class="links">
+        <a href="./checkin-welcome.html">Home</a>
+        <a href="./checkin-globe.html">Stats</a>
+        <a href="./checkin-team.html">Team</a>
+      </div>
+      <span class="divider"></span>
+      <div class="corner">
+        <span class="count-badge" id="countBadge">已汇入星河：0 条</span>
+        <button class="list-btn" id="listBtn">查看留言</button>
+        <button class="toggle-btn" id="toggleBtn">隐藏面板</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="overlay" id="overlay">
+    <div class="msg-board">
+      <div class="head">
+        <h3>所有留言</h3>
+        <button class="close" id="closeBtn" aria-label="关闭">&times;</button>
+      </div>
+      <div class="msg-scroll" id="msgScroll"></div>
+    </div>
+  </div>
+
+  <div class="intro" id="intro">
+    <h1>Message Galaxy</h1>
+    <p>每一条留言，都会变成一颗蓝色星尘，汇入职这片星空。</p>
+  </div>
+
+  <div class="panel" id="panel">
+    <h2>投放一颗星尘</h2>
+    <p class="hint">写下昵称和留言，点击投放，它将成为星河中一颗流动的蓝色粒子。</p>
+    <div class="row">
+      <input type="text" name="name" id="msgName" placeholder="昵称" maxlength="12" autocomplete="off">
+      <textarea id="msgText" placeholder="想对团队说的话…" maxlength="140"></textarea>
+    </div>
+    <div class="actions">
+      <small>留言仅保存在本地浏览器中</small>
+      <button class="submit" id="submitBtn">投放</button>
+    </div>
+  </div>
+
+  <div class="tooltip" id="tooltip">
+    <div class="name"></div>
+    <div class="text"></div>
+    <div class="meta"><span></span><span></span></div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('galaxy');
+    const ctx = canvas.getContext('2d');
+    const panel = document.getElementById('panel');
+    const toggleBtn = document.getElementById('toggleBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    const nameInput = document.getElementById('msgName');
+    const textInput = document.getElementById('msgText');
+    const tooltip = document.getElementById('tooltip');
+    const countBadge = document.getElementById('countBadge');
+    const intro = document.getElementById('intro');
+
+    let W, H, DPR = Math.min(window.devicePixelRatio || 1, 2);
+    function resize(){
+      W = window.innerWidth;
+      H = window.innerHeight;
+      DPR = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = W * DPR;
+      canvas.height = H * DPR;
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    }
+    resize();
+    window.addEventListener('resize', () => {
+      resize();
+    });
+
+    // Utility
+    const rand = (a, b) => a + Math.random() * (b - a);
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const STORAGE_KEY = 'teamMessages_v1';
+
+    const MAX_MESSAGES = 200;
+
+    // Persistent messages
+    let messages = [];
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw) messages = JSON.parse(raw);
+    }catch(e){ messages = []; }
+    function saveMessages(){
+      try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-MAX_MESSAGES))); }catch(e){}
+      updateBadge();
+    }
+    function updateBadge(){
+      countBadge.textContent = `已汇入星空：${messages.length} 条`;
+    }
+    updateBadge();
+
+    // Background starfield. Each star gets its own twinkle frequency/phase, and a
+    // fraction also carries an irregular stochastic flicker, so the whole field reads
+    // as a lively, randomly twinkling sky (not a uniform synchronized shimmer).
+    const bgStars = [];
+    for(let i=0;i<2600;i++){
+      bgStars.push({
+        x: Math.random(), y: Math.random(),
+        size: Math.random() * 1.3,
+        alpha: rand(0.04, 0.40),
+        tf: rand(0.0006, 0.0022),   // own twinkle speed
+        tp: rand(0, Math.PI * 2),   // own phase
+        flick: Math.random(),      // >0.55 => adds a random blink
+        pink: Math.random() < 0.015
+      });
+    }
+    // irregular twinkle: smooth base shimmer + optional stochastic flicker
+    function starTwinkle(s, now){
+      let base = 0.5 + 0.5 * Math.sin(now * s.tf + s.tp);
+      if(s.flick > 0.55) base *= (0.45 + 0.55 * Math.random());  // random blink
+      return base;
+    }
+
+    // (The central river / carpet particle band has been removed per request.
+    //  Only the starfield background + message stardust remain.)
+
+    // Message stardust: each message becomes a blue star scattered in the starfield
+    // (no central river). Position is stored as a fraction of the screen so it stays
+    // put across resizes; it twinkles softly and shows a tooltip on hover.
+    const msgParticles = [];
+    function ensureMsgPos(m){
+      if(m.fx == null) m.fx = Math.random();
+      if(m.fy == null) m.fy = Math.random();
+      if(m.tw == null) m.tw = rand(0, Math.PI * 2);
+      if(m.tf == null) m.tf = rand(0.0008, 0.0022);
+    }
+    function createMsgParticle(msg){
+      ensureMsgPos(msg);
+      return { msg, fx: msg.fx, fy: msg.fy, tw: msg.tw, tf: msg.tf, size: rand(2.4, 3.8), age: 0 };
+    }
+    messages.forEach(m => { ensureMsgPos(m); msgParticles.push(createMsgParticle(m)); });
+
+    function addMessage(name, text){
+      const msg = {
+        id: Date.now() + Math.random().toString(36).slice(2,7),
+        name: name.trim() || '匿名',
+        text: text.trim(),
+        date: new Date().toLocaleString('zh-CN', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}),
+        fx: Math.random(), fy: Math.random(),
+        tw: rand(0, Math.PI * 2), tf: rand(0.0008, 0.0022)
+      };
+      messages.push(msg);
+      saveMessages();
+      msgParticles.push(createMsgParticle(msg));
+      if(overlay.classList.contains('show')) renderMsgList();
+    }
+
+    function updateMessages(dt){
+      for(let p of msgParticles) p.age += dt;
+    }
+
+    function drawMessages(now){
+      for(let p of msgParticles){
+        const x = p.fx * W, y = p.fy * H;
+        const tw = 0.5 + 0.5 * Math.sin(now * p.tf + p.tw);
+        const alpha = clamp(p.age < 1000 ? p.age / 1000 : 0.8 + 0.2 * tw, 0, 1);
+        const size = p.size * (0.85 + 0.3 * tw);
+        // soft blue glow
+        ctx.shadowBlur = 14;
+        ctx.shadowColor = 'rgba(45,140,240,0.7)';
+        ctx.fillStyle = `rgba(90,175,255,${alpha})`;
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+        // bright core
+        ctx.shadowBlur = 4;
+        ctx.shadowColor = 'rgba(180,220,255,0.95)';
+        ctx.fillStyle = `rgba(230,245,255,${alpha})`;
+        ctx.beginPath();
+        ctx.arc(x, y, size * 0.45, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.shadowBlur = 0;
+    }
+
+    // Mouse position (used for hovering message-stardust tooltips)
+    let mouseX = -9999, mouseY = -9999;
+    function setMouse(x, y){ mouseX = x; mouseY = y; }
+    window.addEventListener('mousemove', e => setMouse(e.clientX, e.clientY));
+    window.addEventListener('mouseleave', () => { mouseX = -9999; mouseY = -9999; });
+    window.addEventListener('touchstart', e => setMouse(e.touches[0].clientX, e.touches[0].clientY), {passive:true});
+    window.addEventListener('touchmove', e => setMouse(e.touches[0].clientX, e.touches[0].clientY), {passive:true});
+    window.addEventListener('touchend', () => { mouseX = -9999; mouseY = -9999; });
+
+    function updateTooltip(){
+      let best = null, bestD = 26;
+      for(let p of msgParticles){
+        const x = p.fx * W, y = p.fy * H;
+        const dx = mouseX - x, dy = mouseY - y;
+        const d = Math.hypot(dx, dy);
+        if(d < bestD){ bestD = d; best = p; }
+      }
+      if(best){
+        const m = best.msg;
+        tooltip.querySelector('.name').textContent = m.name;
+        tooltip.querySelector('.text').textContent = m.text;
+        const meta = tooltip.querySelector('.meta');
+        meta.children[0].textContent = m.date;
+        meta.children[1].textContent = `#${m.id.slice(-4)}`;
+        tooltip.style.left = clamp(mouseX + 16, 10, W - 290) + 'px';
+        tooltip.style.top = clamp(mouseY + 16, 10, H - 120) + 'px';
+        tooltip.classList.add('show');
+      }else{
+        tooltip.classList.remove('show');
+      }
+    }
+
+    // UI handlers
+    toggleBtn.addEventListener('click', () => {
+      panel.classList.toggle('hidden');
+      toggleBtn.textContent = panel.classList.contains('hidden') ? '显示面板' : '隐藏面板';
+    });
+
+    // View-all messages overlay
+    const listBtn = document.getElementById('listBtn');
+    const overlay = document.getElementById('overlay');
+    const closeBtn = document.getElementById('closeBtn');
+    const msgScroll = document.getElementById('msgScroll');
+
+    function renderMsgList(){
+      if(messages.length === 0){
+        msgScroll.innerHTML = '<div class="msg-empty">还没有留言，去投下一颗星尘吧。</div>';
+        return;
+      }
+      // newest first
+      const sorted = messages.slice().reverse();
+      msgScroll.innerHTML = sorted.map(m => `
+        <div class="msg-card">
+          <div class="top">
+            <span class="who">${escapeHtml(m.name)}</span>
+            <span class="when">${m.date} · #${String(m.id).slice(-4)}</span>
+          </div>
+          <div class="body">${escapeHtml(m.text)}</div>
+        </div>
+      `).join('');
+    }
+    function escapeHtml(s){
+      return String(s).replace(/[&<>"']/g, c => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[c]));
+    }
+    function openList(){ renderMsgList(); overlay.classList.add('show'); }
+    function closeList(){ overlay.classList.remove('show'); }
+    listBtn.addEventListener('click', openList);
+    closeBtn.addEventListener('click', closeList);
+    overlay.addEventListener('click', e => { if(e.target === overlay) closeList(); });
+    window.addEventListener('keydown', e => { if(e.key === 'Escape') closeList(); });
+
+    function doSubmit(){
+      const name = nameInput.value;
+      const text = textInput.value;
+      if(!text.trim()){
+        textInput.focus();
+        return;
+      }
+      addMessage(name, text);
+      nameInput.value = '';
+      textInput.value = '';
+      intro.style.opacity = '0';
+      setTimeout(() => intro.style.display = 'none', 500);
+    }
+    submitBtn.addEventListener('click', doSubmit);
+    textInput.addEventListener('keydown', e => {
+      if(e.key === 'Enter' && (e.metaKey || e.ctrlKey)) doSubmit();
+    });
+
+    // Intro fade after first message or 6s
+    setTimeout(() => {
+      if(messages.length === 0) intro.style.opacity = '0.45';
+    }, 5000);
+
+    // Animation loop — a calm, twinkling starfield (no central particle band).
+    let last = performance.now();
+    function frame(now){
+      const dt = now - last;
+      last = now;
+
+      // clear each frame (starfield is crisp, not trailing)
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = '#020203';
+      ctx.fillRect(0, 0, W, H);
+
+      // background stars — each twinkles on its own, some blink at random
+      for(let s of bgStars){
+        const tw = starTwinkle(s, now);
+        const a = s.alpha * (0.25 + 0.75 * tw);
+        ctx.fillStyle = s.pink ? `rgba(255,168,178,${a})` : `rgba(255,255,255,${a})`;
+        ctx.fillRect(s.x * W, s.y * H, s.size, s.size);
+      }
+
+      // message stardust (blue, twinkling)
+      updateMessages(dt);
+      drawMessages(now);
+
+      // hover tooltips
+      updateTooltip();
+
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+
+    // If messages exist, hide intro immediately
+    if(messages.length > 0){
+      intro.style.opacity = '0';
+      setTimeout(() => intro.style.display = 'none', 500);
+    }
+  </script>
+</body>
+</html>
