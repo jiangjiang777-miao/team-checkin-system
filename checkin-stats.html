@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Team Check-in System · Statistics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{--bg:#060b12;--panel:rgba(10,22,38,.62);--border:rgba(255,255,255,.09);--text:#e2ebf5;--muted:#7d95b3;--grid:rgba(255,255,255,.04);}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;}
+  .grid{position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:44px 44px;}
+  .wrap{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:36px 24px 60px;}
+
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;}
+  .back,.admin{font-size:13px;color:var(--muted);text-decoration:none;border:1px solid var(--border);padding:8px 16px;border-radius:4px;transition:.2s;}
+  .back:hover,.admin:hover{color:#fff;border-color:rgba(255,255,255,.25);}
+  .title{text-align:center;}
+  .title h1{font-size:clamp(24px,4vw,38px);font-weight:700;letter-spacing:.04em;color:#fff;text-shadow:0 0 22px rgba(255,255,255,.12);}
+  .title .period{font-size:12px;color:var(--muted);letter-spacing:.14em;margin-top:6px;text-transform:uppercase;}
+
+  .percent-strip{display:flex;gap:6px;overflow-x:auto;padding:14px 4px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:26px;}
+  .percent-strip::-webkit-scrollbar{height:4px;}
+  .percent-strip::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px;}
+  .pitem{min-width:44px;text-align:center;font-family:'IBM Plex Mono',monospace;}
+  .pitem span{display:block;font-size:10px;color:var(--muted);margin-bottom:3px;}
+  .pitem strong{display:block;font-size:13px;color:#cfe6ff;font-weight:500;}
+
+  .chart-box{position:relative;height:360px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:18px 22px 34px;margin-bottom:28px;box-shadow:0 18px 50px rgba(0,0,0,.25);}
+  canvas{display:block;width:100%;height:100%;}
+
+  .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px;}
+  .sum-card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:18px;text-align:center;}
+  .sum-card .num{font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:500;color:#fff;}
+  .sum-card .lab{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:4px;}
+
+  .tables{display:grid;grid-template-columns:1fr 1fr;gap:22px;}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:22px;}
+  .panel h3{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#b8cce6;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{text-align:left;color:var(--muted);font-weight:500;font-size:11px;letter-spacing:.04em;padding:8px 6px;border-bottom:1px solid var(--border);}
+  td{padding:10px 6px;border-bottom:1px solid rgba(255,255,255,.04);}
+  tr:last-child td{border-bottom:none;}
+  .rate{font-family:'IBM Plex Mono',monospace;color:#cfe6ff;}
+  .badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:10px;background:rgba(255,255,255,.08);color:#bcd0ea;}
+
+  .absence-list{list-style:none;max-height:360px;overflow-y:auto;padding-right:4px;}
+  .absence-list::-webkit-scrollbar{width:4px;}
+  .absence-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px;}
+  .absence-list li{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px;}
+  .absence-list li:last-child{border-bottom:none;}
+  .abs-date{font-family:'IBM Plex Mono',monospace;color:var(--muted);font-size:11px;}
+  .abs-names{color:#e8c4c4;}
+
+  .empty{text-align:center;padding:60px 20px;color:var(--muted);}
+  .empty a{color:#cfe6ff;text-decoration:underline;}
+
+  @media (max-width:860px){
+    .summary{grid-template-columns:repeat(2,1fr);}
+    .tables{grid-template-columns:1fr;}
+    header{flex-wrap:wrap;gap:12px;}
+    .title{order:-1;width:100%;}
+  }
+</style>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="wrap">
+    <header>
+      <a class="back" href="./checkin-globe.html">← Back to Globe</a>
+      <div class="title">
+        <h1 id="projectName">MORNING RITUAL</h1>
+        <div class="period">Period: Month · Simple Edition</div>
+      </div>
+      <a class="admin" href="./checkin-admin.html">Admin</a>
+    </header>
+
+    <div id="content">
+      <div class="percent-strip" id="percentStrip"></div>
+      <div class="chart-box"><canvas id="chart"></canvas></div>
+      <div class="summary" id="summary"></div>
+      <div class="tables">
+        <div class="panel">
+          <h3>成员完成率</h3>
+          <table id="memberTable"></table>
+        </div>
+        <div class="panel">
+          <h3>缺席日记</h3>
+          <ul class="absence-list" id="absenceList"></ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="empty" id="emptyState" style="display:none;">
+      <p>暂无打卡数据。</p>
+      <p style="margin-top:8px;">请前往 <a href="./checkin-admin.html">Admin 后台</a> 从 8 月 1 日起记录打卡。</p>
+    </div>
+  </div>
+
+<script src="./checkin-data.js?v=2"></script>
+<script>
+  const params = new URLSearchParams(location.search);
+  const project = projectBySlug(params.get('project'));
+  document.getElementById('projectName').textContent = project.name.toUpperCase();
+
+  const stats = getStatsForProject(project.key);
+  if (!stats.dates.length) {
+    document.getElementById('content').style.display = 'none';
+    document.getElementById('emptyState').style.display = 'block';
+  } else {
+    document.title = 'Team Check-in · ' + project.name;
+    renderPercentStrip(stats.daily);
+    renderChart(stats.daily, project.color);
+    renderSummary(stats, project);
+    renderMemberTable(stats.memberStats, stats.totalDays);
+    renderAbsenceList(stats.memberStats);
+  }
+
+  function renderPercentStrip(daily){
+    const box = document.getElementById('percentStrip');
+    box.innerHTML = '';
+    for (const d of daily) {
+      const day = new Date(d.date).getDate();
+      const pct = Math.round(d.rate * 100);
+      const el = document.createElement('div');
+      el.className = 'pitem';
+      el.innerHTML = `<span>${day}</span><strong>${pct}%</strong>`;
+      box.appendChild(el);
+    }
+  }
+
+  function renderChart(daily, color){
+    const canvas = document.getElementById('chart');
+    const ctx = canvas.getContext('2d');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = Math.floor(rect.width * dpr);
+    canvas.height = Math.floor(rect.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const W = rect.width, H = rect.height;
+    const pad = { top: 18, right: 24, bottom: 28, left: 34 };
+    const plotW = W - pad.left - pad.right;
+    const plotH = H - pad.top - pad.bottom;
+    const n = daily.length;
+
+    // grid
+    ctx.strokeStyle = 'rgba(255,255,255,.06)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 5; i++) {
+      const y = pad.top + plotH * (i / 5);
+      ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+    }
+    for (let i = 0; i < n; i += Math.max(1, Math.floor(n / 12))) {
+      const x = pad.left + (i / (n - 1 || 1)) * plotW;
+      ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, H - pad.bottom); ctx.stroke();
+    }
+
+    // axes ticks
+    ctx.fillStyle = '#7d95b3';
+    ctx.font = '11px "IBM Plex Mono"';
+    ctx.textAlign = 'right';
+    for (let i = 0; i <= 5; i++) {
+      const y = pad.top + plotH * (i / 5);
+      const val = Math.round(11 * (1 - i / 5));
+      ctx.fillText(val, pad.left - 8, y + 4);
+    }
+    ctx.textAlign = 'center';
+    for (let i = 0; i < n; i += Math.max(1, Math.floor(n / 10))) {
+      const x = pad.left + (i / (n - 1 || 1)) * plotW;
+      const day = new Date(daily[i].date).getDate();
+      ctx.fillText(day, x, H - 8);
+    }
+
+    // line points
+    const points = daily.map((d, i) => ({
+      x: pad.left + (n === 1 ? plotW / 2 : (i / (n - 1)) * plotW),
+      y: pad.top + plotH * (1 - d.rate)
+    }));
+
+    // glow pass
+    ctx.save();
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 18;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+    ctx.stroke();
+    ctx.restore();
+
+    // core line
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+    ctx.stroke();
+
+    // dots
+    for (const p of points) {
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 1.6, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  function renderSummary(stats, project){
+    const rates = stats.daily.map(d => d.rate);
+    const avg = rates.reduce((a, b) => a + b, 0) / (rates.length || 1);
+    const best = Math.max(...rates, 0);
+    const absentTotal = MEMBERS.reduce((s, m) => s + stats.memberStats[m].absent, 0);
+    const cards = [
+      { num: `${(avg * 100).toFixed(1)}%`, lab: 'Avg Completion' },
+      { num: `${(best * 100).toFixed(0)}%`, lab: 'Best Day' },
+      { num: String(stats.totalDays), lab: 'Days Tracked' },
+      { num: String(absentTotal), lab: 'Total Absences' }
+    ];
+    document.getElementById('summary').innerHTML = cards.map(c => `
+      <div class="sum-card"><div class="num">${c.num}</div><div class="lab">${c.lab}</div></div>
+    `).join('');
+  }
+
+  function renderMemberTable(memberStats, totalDays){
+    const rows = MEMBERS.map(m => ({ m, ...memberStats[m] }))
+      .sort((a, b) => (b.present / totalDays) - (a.present / totalDays));
+    const html = rows.map(r => {
+      const rate = (r.present / totalDays * 100).toFixed(1);
+      return `<tr>
+        <td>${r.m}</td>
+        <td class="rate">${rate}%</td>
+        <td><span class="badge">${r.streak}d</span></td>
+        <td><span class="badge">${r.maxStreak}d</span></td>
+        <td>${r.absent}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('memberTable').innerHTML = `
+      <thead><tr><th>Member</th><th>Rate</th><th>Streak</th><th>Max</th><th>Absent</th></tr></thead>
+      <tbody>${html}</tbody>
+    `;
+  }
+
+  function renderAbsenceList(memberStats){
+    const byDate = {};
+    for (const m of MEMBERS) {
+      for (const d of memberStats[m].absences) {
+        if (!byDate[d]) byDate[d] = [];
+        byDate[d].push(m);
+      }
+    }
+    const dates = Object.keys(byDate).sort().reverse();
+    const box = document.getElementById('absenceList');
+    if (!dates.length) {
+      box.innerHTML = '<li style="justify-content:center;color:#7d95b3">暂无缺席记录</li>';
+      return;
+    }
+    box.innerHTML = dates.map(ds => `
+      <li>
+        <span class="abs-date">${ds}</span>
+        <span class="abs-names">${byDate[ds].join(' · ')}</span>
+      </li>
+    `).join('');
+  }
+
+  window.addEventListener('resize', () => {
+    const stats = getStatsForProject(project.key);
+    if (stats.dates.length) renderChart(stats.daily, project.color);
+  });
+</script>
+</body>
+</html>
