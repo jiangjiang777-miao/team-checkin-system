@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Team Check-in System · Welcome</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@300;400;600&family=Noto+Sans+SC:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#0A0A0B;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    background:var(--bg);
+    color:#fff;
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'PingFang SC','Noto Sans SC',sans-serif;
+    overflow:hidden;
+  }
+  .page{position:relative;width:100vw;height:100vh;display:flex;flex-direction:column;}
+
+  /* Navigation */
+  .nav{
+    height:64px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 48px;position:relative;z-index:4;
+  }
+  .nav .logo{font-size:18px;font-weight:700;letter-spacing:-0.02em;color:#fff;}
+  .nav .links{display:flex;gap:32px;}
+  .nav .links a{font-size:14px;color:#888;text-decoration:none;transition:color .2s;}
+  .nav .links a:hover{color:#fff;}
+  .nav .login{
+    background:#fff;color:var(--bg);padding:10px 20px;border-radius:4px;
+    font-size:14px;font-weight:600;text-decoration:none;
+  }
+
+  /* Hero */
+  .hero{flex:1;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+
+  /* 独立散布的竖列簇（不再框成矩形块） */
+  .matrix-rain{
+    position:absolute;inset:0;overflow:hidden;z-index:1;
+    -webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 10%,#000 90%,transparent 100%);
+            mask-image:linear-gradient(to bottom,transparent 0%,#000 10%,#000 90%,transparent 100%);
+  }
+  .matrix-rain .col{
+    position:absolute;
+    display:flex;flex-direction:column;align-items:flex-start;padding:0;
+    will-change:transform;transform:translateZ(0);
+    -webkit-mask-image:linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%);
+            mask-image:linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%);
+  }
+  @keyframes flowDown{
+    from{transform:translateY(-50%);}
+    to{transform:translateY(0);}
+  }
+  .matrix-rain .digit{
+    font-family:'IBM Plex Mono',ui-monospace,monospace;
+    font-size:10px;font-weight:300;line-height:1;letter-spacing:0;
+    color:#fff;
+    transition:opacity .5s ease;
+  }
+
+  /* Center content */
+  .center{position:relative;z-index:3;display:flex;flex-direction:column;align-items:center;gap:26px;text-align:center;}
+  .badge{
+    display:inline-flex;align-items:center;padding:8px 16px;border-radius:20px;
+    background:#1A1A1F;color:#888;font-size:12px;font-weight:500;letter-spacing:0.04em;
+  }
+  .headline-wrap{display:flex;flex-direction:column;align-items:flex-start;}
+  .headline{font-size:80px;font-weight:700;color:#fff;letter-spacing:-0.03em;line-height:1.05;}
+  .sub{font-size:80px;font-weight:700;color:#8A8A8A;letter-spacing:-0.03em;line-height:1.05;margin-left:120px;}
+  .desc{
+    font-family:'Inter','Noto Sans SC',sans-serif;
+    font-size:18px;color:#999;line-height:1.7;max-width:560px;
+  }
+  .cta{
+    margin-top:8px;background:#fff;color:var(--bg);padding:16px 34px;border-radius:4px;
+    font-family:'Inter','Noto Sans SC',sans-serif;
+    font-size:16px;font-weight:600;text-decoration:none;
+    transition:transform .15s ease,opacity .15s ease;
+  }
+  .cta:hover{transform:translateY(-2px);opacity:.92;}
+
+  @media (max-width:768px){
+    .headline,.sub{font-size:44px;}
+    .sub{margin-left:50px;}
+    .nav{padding:0 20px;}
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+    <nav class="nav">
+      <div class="logo">CheckIn</div>
+      <div class="links">
+        <a href="./checkin-welcome.html">Home</a>
+        <a href="./checkin-stats.html">Stats</a>
+        <a href="./checkin-team.html">Team</a>
+      </div>
+      <a class="login" href="./checkin-admin.html">Log in</a>
+    </nav>
+
+    <div class="hero">
+      <div class="matrix-rain" id="matrixRain"></div>
+
+      <div class="center">
+        <span class="badge">Team Check-in System</span>
+        <div class="headline-wrap">
+          <div class="headline">Welcome back,</div>
+          <div class="sub">My teammate.</div>
+        </div>
+        <p class="desc">I hope we can all see our own check-in progress here — and turn every day of persistence into a visible life of self-discipline.</p>
+        <a class="cta" href="./checkin-globe.html">Check in</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const COL_COUNT_BASE = 20;      // 独立竖列簇数量基准
+    const MIN_DIGITS = 8;           // 每簇最少数字
+    const DIGIT_RANGE = 26;         // 每簇数字数量浮动范围（长短错落）
+
+    function randDigit(){
+      return String(Math.floor(Math.random()*10)); // 单个数字 0-9
+    }
+    function randOpacity(){
+      const r = Math.random();
+      if(r < 0.60) return 0.03 + Math.random()*0.075;   // 0.03-0.105  (原 0.02-0.07 ×1.5)
+      if(r < 0.90) return 0.105 + Math.random()*0.09;   // 0.105-0.195 (原 0.07-0.13 ×1.5)
+      return 0.195 + Math.random()*0.105;               // 0.195-0.30  (原 0.13-0.20 ×1.5)
+    }
+    function randDuration(){
+      return 2.5 + Math.random()*1.5;  // 2.5s ~ 4s，更快且均匀
+    }
+    function randDelay(){
+      return -(Math.random()*14);
+    }
+
+    function scatterSide(container, side, n){
+      const baseLeft = side === 'left' ? 2 : 67;   // 两侧都留边，避免贴边
+      const span = 30;                              // 左侧 2-32% / 右侧 67-97%
+      for(let i=0; i<n; i++){
+        const col = document.createElement('div');
+        col.className = 'col';
+
+        // 均匀槽位 + 轻微抖动：从根本上避免横向重叠，左右自然错开
+        const slot = (i + 0.5) / n;
+        const leftPct = baseLeft + slot*span + (Math.random()*2.4 - 1.2);
+        const topPct = Math.random()*64;  // 0-64%，垂直起点随机错落
+
+        col.style.left = `${leftPct}%`;
+        col.style.top  = `${topPct}%`;
+        // 约 40% 的雨带提速一倍（duration 减半），其余保持原速，制造参差错落
+        const dur = randDuration() * (Math.random() < 0.40 ? 0.5 : 1);
+        col.style.animation = `flowDown ${dur}s linear infinite`;
+        col.style.animationDelay = `${randDelay()}s`;
+
+        // 长短不一
+        const count = MIN_DIGITS + Math.floor(Math.random()*DIGIT_RANGE);
+        // 先固定一份样式数据（文本/透明度/左右偏移/上下间距），再拼两份 → 无缝循环
+        const items = [];
+        for(let k=0; k<count; k++){
+          items.push({
+            t:  randDigit(),
+            o:  randOpacity(),
+            ml: (Math.random()*10 - 5),        // 左右 ±5px 摇摆
+            mb: (4 + Math.random()*10)         // 上下间距 4-14px 参差
+          });
+        }
+        for(let copy=0; copy<2; copy++){
+          for(let k=0; k<count; k++){
+            const d = items[k];
+            const el = document.createElement('div');
+            el.className = 'digit';
+            el.textContent = d.t;
+            el.style.opacity = d.o;
+            el.style.marginLeft = d.ml.toFixed(1) + 'px';
+            el.style.marginBottom = d.mb.toFixed(1) + 'px';
+            col.appendChild(el);
+          }
+        }
+        container.appendChild(col);
+      }
+    }
+
+    function buildRain(container){
+      // 左 7 簇 / 右 8 簇，拉开间距、避免拥挤
+      scatterSide(container, 'left', 7);
+      scatterSide(container, 'right', 8);
+    }
+
+    buildRain(document.getElementById('matrixRain'));
+
+    // 偶尔随机改变少量数字的透明度，制造呼吸感
+    setInterval(()=>{
+      const digits = document.querySelectorAll('.digit');
+      const batch = 16;
+      for(let i=0; i<batch; i++){
+        const el = digits[Math.floor(Math.random()*digits.length)];
+        el.style.opacity = randOpacity();
+      }
+    }, 900);
+  </script>
+</body>
+</html>
